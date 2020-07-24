@@ -1,9 +1,20 @@
 # frozen_string_literal: true
 
-require 'httparty'
 require 'awesome_print'
-require 'nokogiri'
+require 'colorize'
 require 'byebug'
+
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
+#
+# DKFM Scrapper v0.1
+# Scrape DKFM Playlist(s) from onlineradiobox.com
+#
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
+
+require 'httparty'
+require 'nokogiri'
 require 'json'
 
 # https://onlineradiobox.com DKFM Shoegaze radio playlist scrapper
@@ -11,7 +22,7 @@ class DKFMScrapper
   attr_reader :errors, :conn
 
   DKFM_URL = 'https://onlineradiobox.com/ca/dkfmshoegazeradio/playlist/'
-  MAX_DAYS = 9      # Max num of past days playlists available
+  MAX_DAYS = 8      # Max num of past days playlists available
   DAY_SECS = 86_400 # 60 * 60 * 24
 
   # Initialization
@@ -34,13 +45,13 @@ class DKFMScrapper
   end
 
   def playlist_read(playlist_url)
-    @conn = HTTParty.get(playlist_url + 'stuff')
+    @conn = HTTParty.get(playlist_url)
     if @conn.ok?
       playlist_fragment = playlist_fragment(@conn.body)
       playlist_nokogiri = Nokogiri::HTML(playlist_fragment)
       playlist_songs(playlist_nokogiri)
     else
-      push_error(@conn.code, read_playlist)
+      push_error(@conn.code, 'read_playlist')
     end
   end
 
@@ -56,19 +67,17 @@ class DKFMScrapper
   end
 
   def playlist_fragment(body)
-    puts '-- playlist_html'
     init = body.index('<tbody>')
     stop = body.index('</tbody>')
     body[init, stop + 9] # "</tbody>".length + 1 = 9
   end
 
   def playlists(past_days = 0)
-    puts '-- generating playlists for the last ' + past_days.to_s + ' days...'
     playlists = playlists_list(past_days)
     playlists.each do |pl|
       pl[:playlist] = playlist_read(pl[:url])
     end
-    playlists.to_json
+    playlists
   end
 
   private
@@ -84,20 +93,27 @@ class DKFMScrapper
   end
 end
 
-def line
-  '-' * 30
-end
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
+#
+# Program
+#
+#==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
 
-puts line + line
-puts 'DKFMScrapper test '
-puts line + line
+puts '-' * 43
+puts "DKFMScrapper test\n".magenta
+puts "\n"
 
+puts '- Crearing dkfm object...'
 dkfm = DKFMScrapper.new
-puts "- creating scrapper... #{dkfm}"
-puts '- getting available playlists...'
-shoe = dkfm.playlists
-# res = dkfm.playlist_read(lt[:url])
+puts ('  ' + dkfm.to_s).green
+
+puts '- Reading playlist for the last 8 days...'
+lists = dkfm.playlists(8)
+puts '  lists object created'.green
+
+puts '- Entering byebug mode....'
 
 byebug
 
-puts 'END'
+puts '- Closing...'
+puts '  BYE!'.green
