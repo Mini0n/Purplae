@@ -82,11 +82,11 @@ class DKFMScrapper
 
   private
 
-  def push_error(_code, _message)
+  def push_error(code, message)
     @errors.push(
       time: Time.now.strftime('%d.%m.%Y-%H:%M:%S:%L'),
-      code: '000',
-      message: error.message
+      code: code || '000',
+      message: message
     )
   rescue StandardError => e
     push_error(e)
